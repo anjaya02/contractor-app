@@ -23,6 +23,22 @@ Login always verifies the entered service ID using the supplied API. Leading zer
 
 Maps requires Android API 24 or newer. Enable **Maps SDK for Android** for an Android build, or **Maps JavaScript API** for the browser preview, in the key's Google Cloud project. The key's application restrictions must allow the intended Android package/signing certificate or local preview origin. No Maps key is stored in source.
 
+### Maps key for development and handover
+
+A developer-owned Google Cloud project and Maps key can be used during development. Enable billing and **Maps SDK for Android** in that project. Restrict the key to Android apps using package `lk.contractor.contractor_app` and the SHA-1 of the certificate signing the APK. Follow Google's [Android Maps setup guide](https://developers.google.com/maps/documentation/android-sdk/get-api-key) for the Cloud settings.
+
+Create the local `.local/maps.json` file:
+
+```json
+{
+  "GOOGLE_MAPS_API_KEY": "<your-google-maps-key>"
+}
+```
+
+This file stays outside Git. The Android build command above reads the key from it. Changing the key requires rebuilding the APK.
+
+At handover, the receiving team creates this configuration with its own Android-authorized key and builds the app. The key's Android restrictions must match the final package name and signing certificate. Switching keys does not require Dart, Gradle or manifest source edits.
+
 ## Sign-in API
 
 `POST https://serviceportal.slt.lk/ApiGisCon/public/api/getUserData`
@@ -152,15 +168,7 @@ Use Conventional Commits, for example `feat(auth): add service ID sign-in`, `fix
 
 ## Optional browser preview
 
-Install Flutter and Python, then create a local `.local/maps.json` file containing the Maps key supplied by the project team:
-
-```json
-{
-  "GOOGLE_MAPS_API_KEY": "<your-google-maps-key>"
-}
-```
-
-Keep this file outside Git. In PowerShell, from the project folder:
+Install Flutter and Python, then configure `.local/maps.json` as described above with a key authorized for Maps JavaScript API and the local preview origin. In PowerShell, from the project folder:
 
 ```powershell
 flutter pub get
