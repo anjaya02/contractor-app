@@ -17,7 +17,7 @@ class ApiException implements Exception {
       'Could not connect. Check your internet connection and try again.',
     ApiFailure.timeout => 'The connection took too long. Please try again.',
     ApiFailure.rejected =>
-      'We could not verify your staff ID. Check your details or contact your administrator.',
+      'We could not verify your service ID. Check your details or contact your administrator.',
     ApiFailure.unavailable =>
       'Sign-in is temporarily unavailable. Please try again later.',
     ApiFailure.rateLimited =>

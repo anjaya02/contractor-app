@@ -50,7 +50,7 @@ class _LoginFormState extends State<LoginForm> {
               ),
               const SizedBox(height: AppSpacing.md),
               const Text(
-                'Use the staff ID assigned to you, including any leading zeroes. '
+                'Use the service ID assigned to you, including any leading zeroes. '
                 'If you do not have an ID or cannot sign in, contact your SLT administrator.',
               ),
               const SizedBox(height: AppSpacing.lg),
@@ -87,7 +87,7 @@ class _LoginFormState extends State<LoginForm> {
           const SizedBox(height: 12),
           Text('Welcome back.', style: textTheme.headlineLarge),
           const SizedBox(height: AppSpacing.sm),
-          Text('Enter your staff ID to sign in.', style: textTheme.bodyLarge),
+          Text('Enter your service ID to sign in.', style: textTheme.bodyLarge),
           const SizedBox(height: AppSpacing.xl),
           TextFormField(
             key: const ValueKey('sidField'),
@@ -108,9 +108,9 @@ class _LoginFormState extends State<LoginForm> {
               letterSpacing: 1,
             ),
             decoration: const InputDecoration(
-              labelText: 'Staff ID (SID)',
+              labelText: 'Service ID (SID)',
               floatingLabelBehavior: FloatingLabelBehavior.always,
-              hintText: 'Enter your staff ID',
+              hintText: 'Enter your service ID',
               prefixIcon: Icon(Icons.badge_outlined, size: 21),
               helperText: 'Use the ID assigned by your administrator.',
               helperMaxLines: 3,

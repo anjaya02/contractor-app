@@ -57,7 +57,7 @@ class AccountScreen extends StatelessWidget {
                         const SizedBox(height: AppSpacing.xl),
                         const Divider(),
                         const SizedBox(height: AppSpacing.lg),
-                        Text('Staff ID', style: textTheme.bodyMedium),
+                        Text('Service ID', style: textTheme.bodyMedium),
                         const SizedBox(height: AppSpacing.xs),
                         SelectableText(
                           account.sid,

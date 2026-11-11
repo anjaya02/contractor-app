@@ -39,7 +39,7 @@ void main() {
     final repository = FakeLoginRepository();
     await showApp(tester, repository);
     await submit(tester);
-    expect(find.text('Enter your staff ID.'), findsOneWidget);
+    expect(find.text('Enter your service ID.'), findsOneWidget);
     expect(repository.submittedSids, isEmpty);
   });
 

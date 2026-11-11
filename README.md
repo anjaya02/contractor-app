@@ -1,6 +1,6 @@
 # Contractor
 
-Flutter frontend for SLT contractor service operations. The initial feature is staff-ID sign-in using the existing service API. Backend development is handled separately.
+Flutter frontend for SLT contractor service operations. The initial feature is service ID sign-in using the existing service API. Backend development is handled separately.
 
 ## Run locally
 
@@ -22,7 +22,7 @@ Headers: `Content-Type: application/json; charset=UTF-8` and `Accept: applicatio
 
 ```json
 {
-  "sid": "<staff-id>",
+  "sid": "<service-id>",
   "appversion": "1.0.0"
 }
 ```
@@ -105,4 +105,4 @@ Debug APKs are written to `build/app/outputs/flutter-apk/app-debug.apk`. The gen
 
 ## Commit convention
 
-Use Conventional Commits, for example `feat(auth): add staff ID sign-in`, `fix(auth): handle rejected profiles`, or `docs: update setup instructions`.
+Use Conventional Commits, for example `feat(auth): add service ID sign-in`, `fix(auth): handle rejected profiles`, or `docs: update setup instructions`.
