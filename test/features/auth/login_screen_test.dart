@@ -67,6 +67,10 @@ void main() {
       const ContractorAccount(sid: '001234', displayName: 'Test Contractor'),
     );
     await tester.pumpAndSettle();
+    expect(find.text('Your workspace'), findsOneWidget);
+    expect(find.text('Network map'), findsOneWidget);
+    await tester.tap(find.byTooltip('Account'));
+    await tester.pumpAndSettle();
     expect(find.text('You’re signed in.'), findsOneWidget);
     expect(find.text('001234'), findsOneWidget);
 
@@ -101,7 +105,7 @@ void main() {
     repository.onSignIn = null;
     await submit(tester);
     await tester.pumpAndSettle();
-    expect(find.text('You’re signed in.'), findsOneWidget);
+    expect(find.text('Your workspace'), findsOneWidget);
   });
 
   testWidgets('opens and closes practical sign-in help', (tester) async {

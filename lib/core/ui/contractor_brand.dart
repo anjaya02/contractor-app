@@ -24,9 +24,12 @@ class ContractorBrand extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Contractor', style: Theme.of(context).textTheme.titleLarge),
               Text(
-                'SLT · SERVICE OPERATIONS',
+                'GIS Contractor',
+                style: Theme.of(context).textTheme.titleLarge,
+              ),
+              Text(
+                'SLT · FIELD OPERATIONS',
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
                   fontSize: 10,
                   fontWeight: FontWeight.w600,

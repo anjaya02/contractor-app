@@ -1,0 +1,12 @@
+{
+    "name": "GIS Contractor",
+    "short_name": "GIS Contractor",
+    "start_url": ".",
+    "display": "standalone",
+    "background_color": "#F4F7F8",
+    "theme_color": "#132C40",
+    "description": "SLT field operations and network equipment maps.",
+    "orientation": "portrait-primary",
+    "prefer_related_applications": false,
+    "icons": [{"src": "favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable"}]
+}

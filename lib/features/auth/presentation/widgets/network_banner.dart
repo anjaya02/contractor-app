@@ -32,7 +32,7 @@ class NetworkBanner extends StatelessWidget {
             if (expanded) ...[
               const SizedBox(height: AppSpacing.xl),
               Text(
-                'Contractor\nworkspace.',
+                'GIS Contractor\nworkspace.',
                 style: Theme.of(context).textTheme.headlineLarge?.copyWith(
                   color: Colors.white,
                   fontSize: 42,

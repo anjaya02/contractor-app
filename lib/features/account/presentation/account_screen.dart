@@ -67,8 +67,6 @@ class AccountScreen extends StatelessWidget {
                           _AccountDetail(label: 'Contractor', value: name),
                         if (account.userRole case final role?)
                           _AccountDetail(label: 'Role', value: role),
-                        if (account.rtom case final rtom?)
-                          _AccountDetail(label: 'RTOM', value: rtom),
                         const SizedBox(height: AppSpacing.xl),
                         FilledButton.icon(
                           onPressed: onSignOut,

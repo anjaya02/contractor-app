@@ -2,9 +2,10 @@
     <!-- The service API is also required in release builds. -->
     <uses-permission android:name="android.permission.INTERNET" />
     <application
-        android:label="Contractor"
+        android:label="GIS Contractor"
         android:name="${applicationName}"
-        android:icon="@mipmap/ic_launcher">
+        android:icon="@drawable/gis_launcher">
+        <meta-data android:name="com.google.android.geo.API_KEY" android:value="${mapsApiKey}" />
         <activity
             android:name=".MainActivity"
             android:exported="true"
