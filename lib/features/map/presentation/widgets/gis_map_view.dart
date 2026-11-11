@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 
 import '../../../../core/config/app_config.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../platform/maps_loader.dart';
+import '../view_models/map_availability_view_model.dart';
 
-class GisMapView extends StatefulWidget {
+class GisMapView extends StatelessWidget {
   const GisMapView({
     super.key,
     required this.markers,
@@ -17,69 +19,50 @@ class GisMapView extends StatefulWidget {
   final ValueChanged<GoogleMapController> onCreated;
 
   @override
-  State<GisMapView> createState() => _GisMapViewState();
-}
-
-class _GisMapViewState extends State<GisMapView> {
-  bool _authorizationFailed = false;
-  late Future<void> _ready = _load();
-
-  Future<void> _load() => ensureMapsReady(
-    AppConfig.mapsApiKey,
-    onAuthorizationFailure: () {
-      if (mounted) setState(() => _authorizationFailed = true);
-    },
-  );
-
-  @override
-  Widget build(BuildContext context) {
-    if (AppConfig.mapsApiKey.isEmpty) {
-      return const _MapMessage(
-        message:
-            'The map is not configured for this build. Contact your administrator.',
-      );
-    }
-    return FutureBuilder<void>(
-      future: _ready,
-      builder: (context, snapshot) {
-        if (snapshot.hasError) {
-          return _MapMessage(
-            message:
-                'The map could not load. Check your connection and try again.',
-            onRetry: () => setState(() => _ready = _load()),
-          );
-        }
-        if (snapshot.connectionState != ConnectionState.done) {
-          return const Center(child: CircularProgressIndicator());
-        }
-        return Stack(
-          children: [
-            Positioned.fill(
-              child: GoogleMap(
-                initialCameraPosition: const CameraPosition(
-                  target: LatLng(7.9, 80.7),
-                  zoom: 7,
-                ),
-                markers: widget.markers,
-                mapType: widget.mapType,
-                onMapCreated: widget.onCreated,
-                myLocationButtonEnabled: false,
-                mapToolbarEnabled: false,
-                zoomControlsEnabled: true,
+  Widget build(BuildContext context) => ChangeNotifierProvider(
+    create: (_) => MapAvailabilityViewModel(
+      apiKey: AppConfig.mapsApiKey,
+      loader: ensureMapsReady,
+    )..load(),
+    child: Selector<MapAvailabilityViewModel, MapAvailability>(
+      selector: (_, model) => model.state,
+      builder: (context, availability, _) {
+        switch (availability) {
+          case MapAvailability.missingKey:
+            return const _MapMessage(
+              message:
+                  'The map is not configured for this build. Contact your administrator.',
+            );
+          case MapAvailability.loadFailure:
+            return _MapMessage(
+              message:
+                  'The map could not load. Check your connection and try again.',
+              onRetry: context.read<MapAvailabilityViewModel>().load,
+            );
+          case MapAvailability.unauthorized:
+            return const _MapMessage(
+              message:
+                  'Google Maps is not available for this app. Contact your administrator.',
+            );
+          case MapAvailability.loading:
+            return const Center(child: CircularProgressIndicator());
+          case MapAvailability.ready:
+            return GoogleMap(
+              initialCameraPosition: const CameraPosition(
+                target: LatLng(7.9, 80.7),
+                zoom: 7,
               ),
-            ),
-            if (_authorizationFailed)
-              const Positioned.fill(
-                child: _MapMessage(
-                  message:
-                      'Google Maps is not available for this app. Contact your administrator.',
-                ),
-              ),
-          ],
-        );
+              markers: markers,
+              mapType: mapType,
+              onMapCreated: onCreated,
+              myLocationButtonEnabled: false,
+              mapToolbarEnabled: false,
+              zoomControlsEnabled: true,
+            );
+        }
       },
-    );
-  }
+    ),
+  );
 }
 
 class _MapMessage extends StatelessWidget {
@@ -90,7 +73,7 @@ class _MapMessage extends StatelessWidget {
   Widget build(BuildContext context) => ColoredBox(
     color: const Color(0xFFE8EEEF),
     child: Center(
-      child: Padding(
+      child: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
         child: Column(
           mainAxisSize: MainAxisSize.min,

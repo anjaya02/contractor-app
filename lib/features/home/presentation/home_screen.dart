@@ -1,34 +1,20 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 import '../../../core/theme/app_theme.dart';
 import '../../../core/ui/contractor_brand.dart';
 import '../../account/presentation/account_screen.dart';
 import '../../auth/models/contractor_account.dart';
-import '../../map/data/equipment_repository.dart';
+import '../../auth/presentation/view_models/login_view_model.dart';
 import '../../map/presentation/map_screen.dart';
 
 class HomeScreen extends StatelessWidget {
-  const HomeScreen({
-    super.key,
-    required this.account,
-    required this.onSignOut,
-    required this.equipmentRepository,
-  });
+  const HomeScreen({super.key, required this.account});
   final ContractorAccount account;
-  final VoidCallback onSignOut;
-  final EquipmentRepository equipmentRepository;
 
   void _openAccount(BuildContext context) {
     Navigator.of(context).push(
-      MaterialPageRoute<void>(
-        builder: (routeContext) => AccountScreen(
-          account: account,
-          onSignOut: () {
-            Navigator.of(routeContext).pop();
-            onSignOut();
-          },
-        ),
-      ),
+      MaterialPageRoute<void>(builder: (_) => AccountScreen(account: account)),
     );
   }
 
@@ -54,7 +40,7 @@ class HomeScreen extends StatelessWidget {
                         icon: const Icon(Icons.account_circle_outlined),
                       ),
                       IconButton(
-                        onPressed: onSignOut,
+                        onPressed: context.read<LoginViewModel>().signOut,
                         tooltip: 'Sign out',
                         icon: const Icon(Icons.logout_rounded),
                       ),
@@ -88,8 +74,7 @@ class HomeScreen extends StatelessWidget {
                       key: const ValueKey('openMap'),
                       onTap: () => Navigator.of(context).push(
                         MaterialPageRoute<void>(
-                          builder: (_) =>
-                              MapScreen(repository: equipmentRepository),
+                          builder: (_) => const MapScreen(),
                         ),
                       ),
                       child: Padding(

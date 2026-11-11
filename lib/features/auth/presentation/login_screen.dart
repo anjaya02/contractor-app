@@ -3,14 +3,11 @@ import 'package:flutter/material.dart';
 import '../../../core/config/app_config.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/ui/contractor_brand.dart';
-import 'login_controller.dart';
 import 'widgets/login_form.dart';
 import 'widgets/network_banner.dart';
 
 class LoginScreen extends StatelessWidget {
-  const LoginScreen({super.key, required this.controller});
-
-  final LoginController controller;
+  const LoginScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -46,9 +43,7 @@ class LoginScreen extends StatelessWidget {
                                   child: NetworkBanner(expanded: true),
                                 ),
                                 const SizedBox(width: 64),
-                                Expanded(
-                                  child: LoginForm(controller: controller),
-                                ),
+                                Expanded(child: LoginForm()),
                               ],
                             )
                           else ...[
@@ -61,7 +56,7 @@ class LoginScreen extends StatelessWidget {
                                 borderRadius: BorderRadius.circular(16),
                                 border: Border.all(color: AppColors.border),
                               ),
-                              child: LoginForm(controller: controller),
+                              child: const LoginForm(),
                             ),
                           ],
                           SizedBox(height: wide ? 56 : AppSpacing.xl),

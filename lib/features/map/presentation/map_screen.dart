@@ -1,37 +1,65 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 
 import '../../../core/config/app_config.dart';
 import '../data/equipment_repository.dart';
 import '../models/equipment.dart';
-import 'network_map_controller.dart';
+import 'view_models/network_map_view_model.dart';
+import 'view_models/network_map_state.dart';
+import 'widgets/map_controls.dart';
 import 'widgets/equipment_panel.dart';
 import 'widgets/gis_map_view.dart';
 
-class MapScreen extends StatefulWidget {
-  const MapScreen({super.key, required this.repository});
-  final EquipmentRepository repository;
+class MapScreen extends StatelessWidget {
+  const MapScreen({super.key});
 
   @override
-  State<MapScreen> createState() => _MapScreenState();
+  Widget build(BuildContext context) => ChangeNotifierProvider(
+    create: (context) =>
+        NetworkMapViewModel(repository: context.read<EquipmentRepository>())
+          ..loadPlan(AppConfig.initialPlan),
+    child: const _MapView(),
+  );
 }
 
-class _MapScreenState extends State<MapScreen> {
-  late final _controller = NetworkMapController(repository: widget.repository);
+class _MapView extends StatefulWidget {
+  const _MapView();
+
+  @override
+  State<_MapView> createState() => _MapViewState();
+}
+
+class _MapViewState extends State<_MapView> {
   final _plan = TextEditingController(text: AppConfig.initialPlan);
   GoogleMapController? _map;
-  MapType _mapType = MapType.normal;
+  late final NetworkMapViewModel _model;
+  late NetworkMapState _previousState;
 
   @override
   void initState() {
     super.initState();
-    _loadPlan();
+    _model = context.read<NetworkMapViewModel>();
+    _previousState = _model.state;
+    _model.addListener(_onMapChanged);
   }
 
-  Future<void> _loadPlan() async {
-    await _controller.loadPlan(_plan.text);
-    if (mounted) _fitEquipment();
+  void _onMapChanged() {
+    final current = _model.state;
+    final pointsChanged =
+        _previousState.dataset != current.dataset ||
+        _previousState.selectedRtom != current.selectedRtom ||
+        _previousState.selectedType != current.selectedType;
+    _previousState = current;
+    if (!pointsChanged) return;
+    // Update the platform map before fitting the camera to the new selection.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _fitEquipment();
+    });
   }
+
+  Future<void> _loadPlan() =>
+      context.read<NetworkMapViewModel>().loadPlan(_plan.text);
 
   Future<void> _moveCamera(CameraUpdate update) async {
     try {
@@ -41,8 +69,9 @@ class _MapScreenState extends State<MapScreen> {
     }
   }
 
-  void _fitEquipment() {
-    final points = _controller.visiblePoints;
+  void _fitEquipment([NetworkMapState? state]) {
+    final points =
+        (state ?? context.read<NetworkMapViewModel>().state).visiblePoints;
     if (points.isEmpty || _map == null) return;
     if (points.length == 1) {
       _moveCamera(
@@ -76,11 +105,6 @@ class _MapScreenState extends State<MapScreen> {
     }
   }
 
-  void _selectRtom(String? area) {
-    _controller.selectRtom(area);
-    _fitEquipment();
-  }
-
   void _showEquipment(Equipment point) {
     _moveCamera(
       CameraUpdate.newLatLngZoom(LatLng(point.latitude, point.longitude), 18),
@@ -94,12 +118,14 @@ class _MapScreenState extends State<MapScreen> {
     );
   }
 
-  Set<Marker> get _markers {
-    final points = _controller.visiblePoints;
+  Set<Marker> _markersFor(List<Equipment> points) {
     return {
       for (var index = 0; index < points.length; index++)
         Marker(
-          markerId: MarkerId('equipment-$index'),
+          markerId: MarkerId(
+            '${points[index].id}-${points[index].rtom}-${points[index].type}-'
+            '${points[index].location}-${points[index].latitude}-${points[index].longitude}',
+          ),
           position: LatLng(points[index].latitude, points[index].longitude),
           icon: BitmapDescriptor.defaultMarkerWithHue(
             points[index].type == 'POLE' ? 210 : 175,
@@ -115,9 +141,10 @@ class _MapScreenState extends State<MapScreen> {
 
   @override
   void dispose() {
-    _controller.dispose();
+    _model.removeListener(_onMapChanged);
     _plan.dispose();
-    _map?.dispose();
+    // GoogleMap owns and disposes its platform controller.
+    _map = null;
     super.dispose();
   }
 
@@ -125,28 +152,37 @@ class _MapScreenState extends State<MapScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Network map'),
+        title: const Text(
+          'Network map',
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
         backgroundColor: Colors.white,
         actions: [
-          IconButton(
-            onPressed: _fitEquipment,
-            icon: const Icon(Icons.fit_screen_rounded),
-            tooltip: 'Fit equipment',
+          Selector<NetworkMapViewModel, bool>(
+            selector: (_, model) => model.state.visiblePoints.isNotEmpty,
+            builder: (context, hasPoints, _) => TextButton(
+              onPressed: hasPoints ? () => _fitEquipment() : null,
+              child: const Text('Fit points'),
+            ),
           ),
         ],
       ),
-      body: AnimatedBuilder(
-        animation: _controller,
-        builder: (context, _) => LayoutBuilder(
+      body: Selector<NetworkMapViewModel, NetworkMapState>(
+        selector: (_, model) => model.state,
+        builder: (context, state, _) => LayoutBuilder(
           builder: (context, constraints) {
             final wide = constraints.maxWidth >= 900;
             final map = Stack(
               children: [
                 Positioned.fill(
                   child: GisMapView(
-                    markers: _markers,
-                    mapType: _mapType,
+                    markers: _markersFor(state.visiblePoints),
+                    mapType: state.isSatellite
+                        ? MapType.hybrid
+                        : MapType.normal,
                     onCreated: (map) {
+                      if (!mounted) return;
                       _map = map;
                       _fitEquipment();
                     },
@@ -159,27 +195,23 @@ class _MapScreenState extends State<MapScreen> {
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(8),
                     child: TextButton.icon(
-                      onPressed: () => setState(
-                        () => _mapType = _mapType == MapType.normal
-                            ? MapType.hybrid
-                            : MapType.normal,
-                      ),
+                      onPressed: context
+                          .read<NetworkMapViewModel>()
+                          .toggleSatellite,
                       icon: Icon(
-                        _mapType == MapType.normal
+                        !state.isSatellite
                             ? Icons.satellite_alt_outlined
                             : Icons.map_outlined,
                         size: 18,
                       ),
-                      label: Text(
-                        _mapType == MapType.normal ? 'Satellite' : 'Map',
-                      ),
+                      label: Text(!state.isSatellite ? 'Satellite' : 'Map'),
                     ),
                   ),
                 ),
               ],
             );
             final panel = EquipmentPanel(
-              controller: _controller,
+              state: state,
               onSelect: _showEquipment,
               onRetry: _loadPlan,
             );
@@ -189,7 +221,19 @@ class _MapScreenState extends State<MapScreen> {
                   constraints: BoxConstraints(
                     maxHeight: constraints.maxHeight * 0.43,
                   ),
-                  child: SingleChildScrollView(child: _controls()),
+                  child: SingleChildScrollView(
+                    child: MapControls(
+                      state: state,
+                      planController: _plan,
+                      onLoad: _loadPlan,
+                      onRtomChanged: context
+                          .read<NetworkMapViewModel>()
+                          .selectRtom,
+                      onTypeChanged: context
+                          .read<NetworkMapViewModel>()
+                          .selectType,
+                    ),
+                  ),
                 ),
                 Expanded(
                   child: wide
@@ -213,101 +257,6 @@ class _MapScreenState extends State<MapScreen> {
             );
           },
         ),
-      ),
-    );
-  }
-
-  Widget _controls() {
-    return Container(
-      color: Colors.white,
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: TextField(
-                  controller: _plan,
-                  enabled: !_controller.isLoading,
-                  textInputAction: TextInputAction.go,
-                  onSubmitted: (_) => _loadPlan(),
-                  decoration: const InputDecoration(
-                    labelText: 'Plan reference',
-                    isDense: true,
-                  ),
-                ),
-              ),
-              const SizedBox(width: 8),
-              IconButton.filled(
-                onPressed: _controller.isLoading ? null : _loadPlan,
-                tooltip: 'Load plan',
-                style: IconButton.styleFrom(minimumSize: const Size(52, 52)),
-                icon: const Icon(Icons.arrow_forward_rounded),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              Expanded(
-                child: DropdownButtonFormField<String>(
-                  value: _controller.selectedRtom ?? '',
-                  isExpanded: true,
-                  decoration: const InputDecoration(
-                    labelText: 'RTOM',
-                    isDense: true,
-                  ),
-                  items: [
-                    const DropdownMenuItem(
-                      value: '',
-                      child: Text(
-                        'All equipment',
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                    for (final area in _controller.rtoms)
-                      DropdownMenuItem(
-                        value: area,
-                        child: Text(area, overflow: TextOverflow.ellipsis),
-                      ),
-                  ],
-                  onChanged: (value) => _selectRtom(value == '' ? null : value),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: DropdownButtonFormField<String>(
-                  value: _controller.selectedType ?? '',
-                  isExpanded: true,
-                  decoration: const InputDecoration(
-                    labelText: 'Equipment type',
-                    isDense: true,
-                  ),
-                  items: [
-                    const DropdownMenuItem(
-                      value: '',
-                      child: Text('All types', overflow: TextOverflow.ellipsis),
-                    ),
-                    for (final type in _controller.types)
-                      DropdownMenuItem(
-                        value: type,
-                        child: Text(
-                          Equipment.labelForType(type),
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                  ],
-                  onChanged: (value) {
-                    _controller.selectType(value == '' ? null : value);
-                    _fitEquipment();
-                  },
-                ),
-              ),
-            ],
-          ),
-        ],
       ),
     );
   }

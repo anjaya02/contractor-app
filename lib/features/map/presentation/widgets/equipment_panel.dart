@@ -2,105 +2,113 @@ import 'package:flutter/material.dart';
 
 import '../../../../core/theme/app_theme.dart';
 import '../../models/equipment.dart';
-import '../network_map_controller.dart';
+import '../view_models/network_map_state.dart';
 
 class EquipmentPanel extends StatelessWidget {
   const EquipmentPanel({
     super.key,
-    required this.controller,
+    required this.state,
     required this.onSelect,
     required this.onRetry,
   });
-  final NetworkMapController controller;
+  final NetworkMapState state;
   final ValueChanged<Equipment> onSelect;
   final VoidCallback onRetry;
 
   @override
   Widget build(BuildContext context) {
-    final points = controller.visiblePoints;
+    final points = state.visiblePoints;
     return ColoredBox(
       color: Colors.white,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    'Equipment',
-                    style: Theme.of(context).textTheme.titleMedium,
+      child: CustomScrollView(
+        // New results can be shorter than the previous scrolled list.
+        key: ValueKey((state.dataset, state.selectedRtom, state.selectedType)),
+        slivers: [
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      'Equipment',
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
                   ),
-                ),
-                if (controller.dataset != null)
-                  Text(
-                    '${points.length} shown',
-                    style: Theme.of(context).textTheme.bodySmall,
-                  ),
-              ],
-            ),
-          ),
-          const Divider(),
-          if (controller.dataset != null &&
-              controller.dataset!.skippedRecords > 0)
-            Padding(
-              padding: const EdgeInsets.all(12),
-              child: Text(
-                '${controller.dataset!.skippedRecords} records have missing or invalid coordinates.',
+                  if (state.dataset != null)
+                    Text(
+                      '${points.length} shown',
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                ],
               ),
             ),
-          Expanded(
-            child: controller.isLoading
-                ? const Center(
-                    child: CircularProgressIndicator(
-                      semanticsLabel: 'Loading equipment',
-                    ),
-                  )
-                : controller.error != null
-                ? SingleChildScrollView(
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                      children: [
-                        Text(controller.error!),
-                        TextButton(
-                          onPressed: onRetry,
-                          child: const Text('Try again'),
-                        ),
-                      ],
-                    ),
-                  )
-                : points.isEmpty
-                ? SingleChildScrollView(
-                    padding: const EdgeInsets.all(16),
-                    child: Text('No equipment matches this plan and filter.'),
-                  )
-                : ListView.separated(
-                    itemCount: points.length,
-                    separatorBuilder: (_, _) => const Divider(),
-                    itemBuilder: (context, index) => ListTile(
-                      onTap: () => onSelect(points[index]),
-                      leading: Icon(
-                        points[index].type == 'POLE'
-                            ? Icons.cell_tower_outlined
-                            : Icons.device_hub_outlined,
-                        color: AppColors.teal,
-                      ),
-                      title: Text(
-                        points[index].location,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      subtitle: Text(
-                        '${points[index].typeLabel} · ${points[index].rtom}',
-                      ),
-                      trailing: const Icon(
-                        Icons.chevron_right_rounded,
-                        size: 20,
-                      ),
-                    ),
-                  ),
           ),
+          const SliverToBoxAdapter(child: Divider()),
+          if (state.dataset != null && state.dataset!.skippedRecords > 0)
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.all(12),
+                child: Text(
+                  '${state.dataset!.skippedRecords} records have missing or invalid coordinates.',
+                ),
+              ),
+            ),
+          if (state.isLoading)
+            const SliverFillRemaining(
+              hasScrollBody: false,
+              child: Center(
+                child: CircularProgressIndicator(
+                  semanticsLabel: 'Loading equipment',
+                ),
+              ),
+            )
+          else if (state.error != null)
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  children: [
+                    Text(state.error!),
+                    TextButton(
+                      onPressed: onRetry,
+                      child: const Text('Try again'),
+                    ),
+                  ],
+                ),
+              ),
+            )
+          else if (points.isEmpty)
+            const SliverFillRemaining(
+              hasScrollBody: false,
+              child: Padding(
+                padding: EdgeInsets.all(16),
+                child: Text('No equipment matches this plan and filter.'),
+              ),
+            )
+          else
+            SliverList.separated(
+              itemCount: points.length,
+              separatorBuilder: (_, _) => const Divider(),
+              itemBuilder: (context, index) => ListTile(
+                onTap: () => onSelect(points[index]),
+                leading: Icon(
+                  points[index].type == 'POLE'
+                      ? Icons.cell_tower_outlined
+                      : Icons.device_hub_outlined,
+                  color: AppColors.teal,
+                ),
+                title: Text(
+                  points[index].location,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                subtitle: Text(
+                  '${points[index].typeLabel} · ${points[index].rtom}',
+                ),
+                trailing: const Icon(Icons.chevron_right_rounded, size: 20),
+              ),
+            ),
         ],
       ),
     );

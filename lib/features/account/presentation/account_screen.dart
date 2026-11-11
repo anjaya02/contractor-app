@@ -1,18 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 import '../../../core/theme/app_theme.dart';
 import '../../../core/ui/contractor_brand.dart';
 import '../../auth/models/contractor_account.dart';
+import '../../auth/presentation/view_models/login_view_model.dart';
 
 class AccountScreen extends StatelessWidget {
-  const AccountScreen({
-    super.key,
-    required this.account,
-    required this.onSignOut,
-  });
+  const AccountScreen({super.key, required this.account});
 
   final ContractorAccount account;
-  final VoidCallback onSignOut;
 
   @override
   Widget build(BuildContext context) {
@@ -69,7 +66,7 @@ class AccountScreen extends StatelessWidget {
                           _AccountDetail(label: 'Role', value: role),
                         const SizedBox(height: AppSpacing.xl),
                         FilledButton.icon(
-                          onPressed: onSignOut,
+                          onPressed: context.read<LoginViewModel>().signOut,
                           icon: const Icon(Icons.logout_rounded, size: 19),
                           label: const Text('Sign out'),
                         ),

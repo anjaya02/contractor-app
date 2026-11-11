@@ -17,7 +17,7 @@ flutter build apk --debug --dart-define-from-file=.local/maps.json
 
 Use an Android emulator or connect a phone with USB debugging enabled. Check the local toolchain with `flutter doctor`; resolve any Android SDK or licence issues it reports.
 
-On the currently configured Pixel emulator, use `flutter run -d emulator-5554 --dart-define-from-file=.local/maps.json`. In VS Code, select the Android device in the status bar, choose **GIS Contractor (Android)**, then press F5. Press `r` for hot reload, `R` to restart, or `q` to stop a terminal run. Changing build-time configuration requires stopping and running again.
+Building an APK does not require a connected device. Copy `build/app/outputs/flutter-apk/app-debug.apk` to an Android phone and install it for testing. In VS Code, **GIS Contractor (Android)** passes the local Maps configuration when running on a connected device. Changing build-time configuration requires rebuilding the APK.
 
 Login always verifies the entered service ID using the supplied API. Leading zeroes are preserved. Rejected IDs remain on the login screen; there is no temporary bypass or additional sign-in provider.
 
@@ -129,7 +129,7 @@ lib/
     auth/
       data/                HTTP service, response decoder and repository
       models/              Immutable account model
-      presentation/        Login state, validation, screen and widgets
+      presentation/        Login view model, immutable state, screen and widgets
     account/
       presentation/        Verified account details and sign-out
     home/
@@ -138,7 +138,7 @@ lib/
       data/                Plan equipment repository
       models/              Equipment and dataset models
       platform/            Browser Maps script loading
-      presentation/        Map state, screen, filters and equipment details
+      presentation/        Map view models, immutable state, screen and widgets
 test/
   features/                Auth/map API, controller and widget tests
   support/                 Test repositories
@@ -146,7 +146,18 @@ tool/                      Local browser preview tooling
 web/                       Flutter browser bootstrap
 ```
 
-Widgets handle presentation, `LoginController` manages state, and the repository handles data access. Dependencies are passed through constructors. Add new features under `features/` and reuse the shared theme.
+Widgets handle presentation, view models manage feature state, and repositories handle data access. Dependencies are passed through constructors. Add new features under `features/` and reuse the shared theme.
+
+## State management
+
+The app uses [Provider](https://pub.dev/packages/provider) with `ChangeNotifier` view models and immutable state objects. Each feature keeps its view models and state under `presentation/view_models/`.
+
+- `MultiProvider` registers repositories and owns the shared HTTP client. `ChangeNotifierProvider` creates and disposes view models.
+- `LoginViewModel` owns the in-memory session. The session gate selects only the account, so form loading and errors do not rebuild the workspace. Signing out removes every route in the signed-in workspace.
+- `NetworkMapViewModel` belongs to a map route and owns equipment loading, RTOM/type filters and map mode. Reopening the map starts fresh. `MapAvailabilityViewModel` handles SDK loading, retry and browser authorization failures.
+- Widgets select the state they display with `Selector` and call actions with `context.read`. State fields are read-only; network requests stay in repositories. Text-editing and native map controllers stay with their owning widgets.
+
+Async completions are ignored after disposal. Signing out also invalidates pending login requests, so a late response cannot restore an old session. Tests cover these cases along with filters, retries and back navigation.
 
 ## Checks and build
 
